@@ -11,20 +11,24 @@ var ItemsVue = new Vue({
   },
   methods: {
     remove: function (e) {
-      const id = e.target.id
-      var self = this
-      $.ajax({
-        url: 'remove/' + id, method: 'GET', success: function (data) { self.items = data }
-      })
+      if (confirm('Точно удалить ссылку?')) {
+        const id = e.target.id
+        var self = this
+        $.ajax({
+            url: 'remove/' + id, method: 'GET', success: function (data) { self.items = data }
+        })
+      }
     },
     add: function (e) {
       const filename = $('#filename').val()
       $('#filename').val('')
-      const comment = $('#comment').val()
+      const comment = $('#comment').val() || '-'
       $('#comment').val('')
+      const days = $('#days').val() || '3'
+      $('#days').val('')
       var self = this
       $.ajax({
-        url: 'add/' + filename + '/' + comment, method: 'GET', success: function (data) { self.items = data }
+        url: 'add/' + filename + '/' + comment+ '/' +days, method: 'GET', success: function (data) { self.items = data }
       })
     }
   }
@@ -44,7 +48,7 @@ var FilesVue = new Vue({
   methods: {
     remove: function (e) {
       var self = this
-      if (confirm('Точно удалить?')) {
+      if (confirm('Точно удалить файл?')) {
         const id = e.target.id
         $.ajax({
           url: 'removeFile/' + id, method: 'GET', success: function (data) { self.items = data }

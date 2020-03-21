@@ -14,8 +14,8 @@
                     <div id="Itemlist">
                         <table class="table">
                             <tr>
-                                <th>ID</th>
-                                <th>Название Файла</th>
+                                <th>Ссылка</th>
+                                <th>Имя Файла</th>
                                 <th>Комментарий</th>
                                 <th>Время жизни ссылки</th>
                                 <th>Удалить Ссылку</th>
@@ -29,9 +29,14 @@
                             </tr>
                         </table>
                         <div class="form-inline">
-                            <input  class="form-control" placeholder="Имя файла" type="text" id="filename" />
-                            <input  class="form-control" placeholder="Комментарий" type="text" id="comment" />
-                            <input  class="btn btn-primary" v-on:click="add" type="button" value="Создать ссылку"/>
+                            <input class="form-control" placeholder="Имя файла" type="text" id="filename" />
+                            <input class="form-control" placeholder="Комментарий" type="text" id="comment" />
+
+                            <div class="input-group">
+                                <input class="form-control" value="3" aria-describedby="basic-addon1" placeholder="Время жизни" type="text" id="days" value="3"/>
+                                <span class="input-group-addon" id="basic-addon1">дн.</span>
+                            </div>
+                            <input class="btn btn-primary" v-on:click="add" type="button" value="Создать ссылку"/>
                         </div>
                     </div>
                 </div>

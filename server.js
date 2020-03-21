@@ -14,7 +14,6 @@ app.use(fileUpload())
 const FILE_FOLDER_PATH = path.join(__dirname, 'upload')
 const ADMIN_PASS = process.env.ADMIN_PASS
 const PORT = 3333
-const MAX_DAYS = 5
 
 db.defaults({ links: [] }).write()
 
@@ -81,13 +80,14 @@ app.get('/admin/:adminPass/removeFile/:removeFileName', async function (req, res
   }
 })
 
-app.get('/admin/:adminPass/add/:filePath/:comment', async function (req, res) {
+app.get('/admin/:adminPass/add/:filePath/:comment/:days', async function (req, res) {
   const filename = req.params.filePath
   const comment = req.params.comment
+  const days = parseInt(req.params.days, 10)
   if (filename && checkAdmin(req)) {
     const fileId = v1()
     db.get('links')
-      .push({ fileId, filename, comment, date: addDays(new Date(), MAX_DAYS) })
+      .push({ fileId, filename, comment, date: addDays(new Date(), days) })
       .write()
     res.send(db.get('links').value())
   }
