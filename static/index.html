@@ -1,0 +1,79 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script> 
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">    
+        <link rel="stylesheet" href="index.css">
+    </head>
+    <body>
+        <div class="container-fluid">
+            <h1>Управление ссылками</h1>
+            <div class="panel panel-default">
+                <div class="panel-heading">Список ссылок</div>
+                <div class="panel-body">
+                    <div id="Itemlist">
+                        <table class="table">
+                            <tr>
+                                <th>ID</th>
+                                <th>Название Файла</th>
+                                <th>Комментарий</th>
+                                <th>Время жизни ссылки</th>
+                                <th>Удалить Ссылку</th>
+                            </tr>
+                            <tr v-for="(item, index) in items">
+                                <td><a v-bind:href="'/get/'+item.fileId">{{item.fileId}}</a></td>
+                                <td>{{item.filename}}</td>
+                                <td>{{item.comment}}</td>
+                                <td>{{item.date}}</td>
+                                <td><div v-bind:id="item.fileId" v-on:click="remove($event)" class="btn">&times;</div></td>
+                            </tr>
+                        </table>
+                        <div class="form-inline">
+                            <input  class="form-control" placeholder="Имя файла" type="text" id="filename" />
+                            <input  class="form-control" placeholder="Комментарий" type="text" id="comment" />
+                            <input  class="btn btn-primary" v-on:click="add" type="button" value="Создать ссылку"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">Список файлов</div>
+                <div class="panel-body">
+                    <div id="FileList">
+                        <table class="table">
+                            <tr>
+                                <th>Имя файла</th>
+                                <th>Удалить Файл</th>
+                            </tr>
+                            <tr v-for="(item, index) in items">
+                                <td>{{item}}</td>
+                                <td><div v-bind:id="item" v-on:click="remove($event)" class="btn">&times;</div></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">Загрузить файл</div>
+                <div class="panel-body">
+                    <form ref='uploadForm' 
+                        id='uploadForm' 
+                        action='upload' 
+                        method='post' 
+                        encType="multipart/form-data">
+                        
+                        <div class="form-inline">
+                            <input type="file" class="custom-file-input" name="sampleFile" id="sampleFile">
+                            <label class="custom-file-label" for="sampleFile">Выбрать файл</label>
+                            <input class="btn" disabled id='upload-button' type='submit' value='Загрузить файл' />
+                        </div>
+                    </form>    
+                </div>
+            </div>
+        </div>
+    </body>
+
+    <script src="index.js"></script>
+</html>

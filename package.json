@@ -18,6 +18,9 @@
   "homepage": "https://github.com/vnabatov/webinar-yandex-shop#readme",
   "dependencies": {
     "express": "^4.17.1",
+    "express-fileupload": "^1.1.6",
+    "lowdb": "^1.0.0",
+    "uuid": "^7.0.2",
     "ya-disk": "^3.0.0",
     "yandex-disk": "0.0.8"
   }

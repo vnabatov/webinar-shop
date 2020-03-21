@@ -1,12 +1,22 @@
+var { v1 } = require('uuid')
 var path = require('path')
-var mime = require('mime')
 var fs = require('fs')
 var express = require('express')
-var YaDisk = require('ya-disk')
+const fileUpload = require('express-fileupload')
 
-var disk = new YaDisk({ token: process.env.YANDEX_TOKEN })
-
+const low = require('lowdb')
+const FileSync = require('lowdb/adapters/FileSync')
+const adapter = new FileSync('db.json')
+const db = low(adapter)
 var app = express()
+app.use(fileUpload())
+
+const FILE_FOLDER_PATH = path.join(__dirname, 'upload')
+const ADMIN_PASS = process.env.ADMIN_PASS
+const PORT = 3333
+const MAX_DAYS = 5
+
+db.defaults({ links: [] }).write()
 
 const addDays = function (dateOld, days) {
   var date = new Date(dateOld)
@@ -14,69 +24,99 @@ const addDays = function (dateOld, days) {
   return date
 }
 
-let links = {
-  '73a90acaae2b1ccc0e969709665bc62f': {
-    filename: 'image1.jpg',
-    dateExpires: new Date('2020-03-25T18:15:34.306Z')
-  },
-  '0f4b7ef21da9725c1baae7f91a990c6f': {
-    filename: 'LP.webm',
-    dateExpires: new Date('2020-03-25T18:15:34.306Z')
+const checkAdmin = (req) => ADMIN_PASS && req.params.adminPass === ADMIN_PASS
+const sendFileList = (res) => fs.readdir(FILE_FOLDER_PATH, function (err, files) {
+  if (err) {
+    return console.log('Unable to scan directory: ' + err)
   }
-}
+  res.send(files)
+})
+app.get('/get/:fileId', async function (req, res) {
+  const fileId = req.params.fileId
+  const file = db.get('links')
+    .find({ fileId }).value()
 
-app.get('/get', async function (req, res) {
-  if (!links[req.query.pass]) {
+  if (!file) {
     res.send('ссылка не найдена')
   }
 
-  if ((new Date()).valueOf() > new Date(links[req.query.pass].dateExpires)) {
-    res.send('ссылка не активна')
+  if ((new Date()).valueOf() > new Date(file.date)) {
+    res.send('ссылка не активна (истёк срок действия)')
   }
 
-  await new Promise((resolve) => {
-    disk.request('get', { path: 'test-webinar/' + links[req.query.pass] })
-      .then(function (res) {
-        resolve()
-      }, function (err) {
-        console.log(err)
-      })
+  try {
+    var filePath = path.join(FILE_FOLDER_PATH, file.filename)
+    res.download(filePath)
+  } catch (e) {
+    res.send('файл не найден')
+  }
+})
+
+app.get('/admin/:adminPass/list', async function (req, res) {
+  if (checkAdmin(req)) {
+    console.log(db.get('links').value())
+    res.send(db.get('links').value())
+  }
+})
+app.get('/admin/:adminPass/filesList', async function (req, res) {
+  if (checkAdmin(req)) {
+    sendFileList(res)
+  }
+})
+
+app.get('/admin/:adminPass/remove/:removeId', async function (req, res) {
+  const removeId = req.params.removeId
+  if (checkAdmin(req) && removeId) {
+    db.get('links')
+      .remove({ fileId: removeId })
+      .write()
+    res.send(db.get('links').value())
+  }
+})
+app.get('/admin/:adminPass/removeFile/:removeFileName', async function (req, res) {
+  const removeFileName = req.params.removeFileName
+  if (checkAdmin(req) && removeFileName) {
+    fs.unlinkSync(path.join(FILE_FOLDER_PATH, removeFileName))
+    sendFileList(res)
+  }
+})
+
+app.get('/admin/:adminPass/add/:filePath/:comment', async function (req, res) {
+  const filename = req.params.filePath
+  const comment = req.params.comment
+  if (filename && checkAdmin(req)) {
+    const fileId = v1()
+    db.get('links')
+      .push({ fileId, filename, comment, date: addDays(new Date(), MAX_DAYS) })
+      .write()
+    res.send(db.get('links').value())
+  }
+})
+
+const staticFiles = ['index.html', 'index.css', 'index.js']
+staticFiles.forEach(staticFile => {
+  app.get('/admin/:adminPass/' + staticFile, async function (req, res) {
+    if (checkAdmin(req)) {
+      res.sendFile(path.join(path.join(__dirname), 'static', staticFile))
+    }
   })
-
-  var filePath = path.join(__dirname, links[req.query.pass].filename)
-
-  var filename = path.basename(filePath)
-  var mimetype = mime.lookup(filePath)
-
-  res.setHeader('Content-disposition', 'attachment; filename=' + filename)
-  res.setHeader('Content-type', mimetype)
-  var filestream = fs.createReadStream(filePath)
-  filestream.pipe(res)
 })
-
-app.get('/admin/list', async function (req, res) {
-  // /admin/list?adminPass=<>
-  if (process.env.ADMIN_PASS && (req.query.adminPass === process.env.ADMIN_PASS)) {
-    res.send(links)
+app.get('/admin/:adminPass/', async function (req, res) {
+  if (checkAdmin(req)) {
+    res.sendFile(path.join(path.join(__dirname), 'static', 'index.html'))
   }
 })
 
-app.get('/admin/remove', async function (req, res) {
-  // /admin/remove?adminPass=<>&pass=<>&filename=<>
-  if (process.env.ADMIN_PASS && (req.query.adminPass === process.env.ADMIN_PASS)) {
-    delete links[req.query.remove]
-    res.send(links)
+app.post('/admin/:adminPass/upload', function (req, res) {
+  if (checkAdmin(req)) {
+    let sampleFile = req.files.sampleFile
+    sampleFile.mv(path.resolve(FILE_FOLDER_PATH, sampleFile.name), function (err) {
+      if (err) { return res.status(500).send(err) }
+      res.redirect('/admin/' + req.params.adminPass + '/')
+    })
   }
 })
 
-app.get('/admin/add', async function (req, res) {
-  // /admin/add?adminPass=<>&pass=<>&filename=<>
-  if (process.env.ADMIN_PASS && req.query.filename && req.query.pass && (req.query.adminPass === process.env.ADMIN_PASS)) {
-    links[req.query.pass] = { filename: req.query.filename, date: addDays(new Date(), 5) }
-    res.send(links)
-  }
-})
-
-app.listen(3000, function () {
-  console.log('Example app listening on port 3000!')
+app.listen(PORT, function () {
+  console.log('Example app listening on port ' + PORT)
 })
